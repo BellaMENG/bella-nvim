@@ -6,18 +6,18 @@ return {
 
         conform.setup({
             formatters_by_ft = {
-                javascript = { "prettier" },
-                typescript = { "prettier" },
-                javascriptreact = { "prettier" },
-                typescriptreact = { "prettier" },
-                svelte = { "prettier" },
-                css = { "prettier" },
-                html = { "prettier" },
-                json = { "prettier" },
-                yaml = { "prettier" },
-                markdown = { "prettier" },
-                graphql = { "prettier" },
-                liquid = { "prettier" },
+                javascript = { "biome" },
+                typescript = { "biome" },
+                javascriptreact = { "biome" },
+                typescriptreact = { "biome" },
+                svelte = { "biome" },
+                css = { "biome" },
+                html = { "biome" },
+                json = { "biome" },
+                yaml = { "biome" },
+                markdown = { "biome" },
+                graphql = { "biome" },
+                liquid = { "biome" },
                 lua = { "stylua" },
                 python = { "isort", "black" },
             },
@@ -26,8 +26,24 @@ return {
                 async = false,
                 timeout_ms = 1000,
             },
+            formatters = {
+                biome = {
+                    command = "biome",
+                    args = {
+                        "format",
+                        "--fix",
+                        "--stdin-file-path",
+                        "$FILENAME",
+                    },
+                    cwd = require("conform.util").root_file({
+                        "biome.json",
+                        "package.json",
+                    }),
+                },
+            },
         })
 
+        vim.g.conform_log_level = "debug"
         vim.keymap.set({ "n", "v" }, "<leader>mp", function()
             conform.format({
                 lsp_fallback = true,

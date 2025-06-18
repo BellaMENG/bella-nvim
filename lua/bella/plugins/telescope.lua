@@ -9,10 +9,16 @@ return {
     },
     config = function()
         local telescope = require("telescope")
+        local telescopeConfig = require("telescope.config")
         local actions = require("telescope.actions")
+
+        local vimgrep_arguments = { unpack(telescopeConfig.values.vimgrep_arguments) }
+        -- ripgrep to follow symlinks
+        table.insert(vimgrep_arguments, "-L")
 
         telescope.setup({
             defaults = {
+                vimgrep_arguments = vimgrep_arguments,
                 path_display = { "smart" },
                 mappings = {
                     i = {
@@ -20,6 +26,11 @@ return {
                         ["<C-j>"] = actions.move_selection_next, -- move to next result
                         ["<C-q>"] = actions.send_selected_to_qflist + actions.open_qflist,
                     },
+                },
+            },
+            pickers = {
+                find_files = {
+                    follow = true,
                 },
             },
         })
