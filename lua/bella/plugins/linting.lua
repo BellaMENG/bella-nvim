@@ -19,6 +19,11 @@ return {
         vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
             group = lint_augroup,
             callback = function()
+                -- Skip eslint for projects using Biome (e.g., ChatGPTApp)
+                local filepath = vim.fn.expand("%:p")
+                if filepath:match("ChatGPTApp") then
+                    return
+                end
                 lint.try_lint()
             end,
         })

@@ -3,6 +3,11 @@ return {
     event = { "BufReadPre", "BufNewFile" },
     config = function()
         local conform = require("conform")
+        local util = require("conform.util")
+
+        local biome_bin = util.find_executable({
+            "node_modules/.bin/biome",
+        }, "biome") or "biome"
 
         conform.setup({
             formatters_by_ft = {
@@ -21,24 +26,26 @@ return {
                 lua = { "stylua" },
                 python = { "isort", "black" },
             },
+
             format_on_save = {
                 lsp_fallback = true,
                 async = false,
                 timeout_ms = 1000,
             },
+
             formatters = {
                 biome = {
-                    command = "biome",
+                    command = biome_bin,
                     args = {
                         "format",
                         "--fix",
                         "--stdin-file-path",
                         "$FILENAME",
                     },
-                    cwd = require("conform.util").root_file({
+                    cwd = util.root_file({
                         "biome.json",
                         "package.json",
-                    }),
+                    }) or vim.loop.cwd(),
                 },
             },
         })
