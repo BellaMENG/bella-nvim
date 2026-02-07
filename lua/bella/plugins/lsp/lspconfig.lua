@@ -7,34 +7,36 @@ return {
         { "folke/lazydev.nvim", opts = {} },
     },
     config = function()
-        -- import lspconfig plugin
-        local lspconfig = require("lspconfig")
-
-        -- import mason_lspconfig plugin
-        local mason_lspconfig = require("mason-lspconfig")
-
-        -- import cmp-nvim-lsp plugin
         local cmp_nvim_lsp = require("cmp_nvim_lsp")
+        local keymap = vim.keymap
 
-        local keymap = vim.keymap -- for conciseness
-
-        require("lspconfig").eslint.setup({
-            cmd = { "./node_modules/.bin/eslint", "--stdio" },
-            root_dir = require("lspconfig").util.root_pattern(".eslintrc", "package.json", ".git"),
+        -- Set default capabilities for all LSP servers
+        vim.lsp.config("*", {
+            capabilities = cmp_nvim_lsp.default_capabilities(),
         })
 
+        -- LSP keybindings and per-server on_attach logic
         vim.api.nvim_create_autocmd("LspAttach", {
             group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
             callback = function(ev)
-                -- Ensure ev.buf is a valid buffer number
                 if not ev.buf or type(ev.buf) ~= "number" or not vim.api.nvim_buf_is_valid(ev.buf) then
                     return
                 end
 
-                -- Buffer local mappings.
+                local client = vim.lsp.get_client_by_id(ev.data.client_id)
+
+                -- Disable formatting for ts_ls (use conform.nvim instead)
+                if client and client.name == "ts_ls" then
+                    client.server_capabilities.documentFormattingProvider = false
+                end
+
+                -- Enable omnifunc for sourcekit
+                if client and client.name == "sourcekit" then
+                    vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
+                end
+
                 local opts = { buffer = ev.buf, silent = true }
 
-                -- set keybinds
                 opts.desc = "Show LSP references"
                 keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts)
                 opts.desc = "Go to declaration"
@@ -69,64 +71,64 @@ return {
             end,
         })
 
-        -- Get default capabilities
-        local capabilities = cmp_nvim_lsp.default_capabilities()
-
-        lspconfig.sourcekit.setup({
+        -- Configure individual servers (overrides lspconfig defaults)
+        vim.lsp.config("sourcekit", {
             cmd = { "sourcekit-lsp", "--scratch-path", ".nativeBuild" },
-            root_dir = function(filename)
-                if string.match(filename, "Crossplatform") or string.match(filename, "CommonSwift") then
+            root_dir = function(bufnr)
+                local fname = vim.api.nvim_buf_get_name(bufnr)
+                if string.match(fname, "Crossplatform") or string.match(fname, "CommonSwift") then
                     return "/Users/bellameng/GoodNotes-5/Crossplatform"
-                else
-                    return lspconfig.util.root_pattern("Package.swift")(filename)
                 end
-            end,
-            on_attach = function(client, bufnr)
-                vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
-            end,
-            capabilities = capabilities,
-        })
-
-        lspconfig.ts_ls.setup({
-            capabilities = capabilities,
-            on_attach = function(client, bufnr)
-                client.server_capabilities.documentFormattingProvider = false
+                return vim.fs.root(bufnr, "Package.swift")
             end,
         })
 
-        -- Change the Diagnostic symbols in the sign column (gutter)
-        local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
-        for type, icon in pairs(signs) do
-            local hl = "DiagnosticSign" .. type
-            vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
-        end
+        vim.lsp.config("eslint", {
+            root_markers = { ".eslintrc", ".eslintrc.json", ".eslintrc.js", "package.json" },
+        })
 
-        mason_lspconfig.setup_handlers({
-            -- default handler for installed servers
-            function(server_name)
-                if server_name == "sourcekit" or server_name == "ts_ls" then
-                    return
-                end
-                lspconfig[server_name].setup({
-                    capabilities = capabilities,
-                })
-            end,
+        -- Disable stylua LSP (stylua is a formatter, not an LSP server)
+        vim.lsp.enable("stylua", false)
 
-            ["lua_ls"] = function()
-                lspconfig.lua_ls.setup({
-                    capabilities = capabilities,
-                    settings = {
-                        Lua = {
-                            diagnostics = {
-                                globals = { "vim" },
-                            },
-                            completion = {
-                                callSnippet = "Replace",
-                            },
-                        },
+        vim.lsp.config("lua_ls", {
+            settings = {
+                Lua = {
+                    diagnostics = {
+                        globals = { "vim" },
                     },
-                })
-            end,
+                    completion = {
+                        callSnippet = "Replace",
+                    },
+                },
+            },
+        })
+
+        -- Enable all servers
+        vim.lsp.enable({
+            "sourcekit",
+            "ts_ls",
+            "eslint",
+            "lua_ls",
+            "html",
+            "cssls",
+            "tailwindcss",
+            "svelte",
+            "graphql",
+            "emmet_ls",
+            "prismals",
+            "pyright",
+        })
+
+        -- Diagnostic signs
+        vim.diagnostic.config({
+            signs = {
+                text = {
+                    [vim.diagnostic.severity.ERROR] = " ",
+                    [vim.diagnostic.severity.WARN] = " ",
+                    [vim.diagnostic.severity.HINT] = "󰠠 ",
+                    [vim.diagnostic.severity.INFO] = " ",
+                },
+            },
         })
     end,
 }
