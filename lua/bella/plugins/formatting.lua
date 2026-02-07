@@ -19,10 +19,10 @@ return {
                 css = { "biome" },
                 html = { "biome" },
                 json = { "biome" },
-                yaml = { "biome" },
-                markdown = { "biome" },
-                graphql = { "biome" },
-                liquid = { "biome" },
+                yaml = { "prettier" },
+                markdown = { "prettier" },
+                graphql = { "prettier" },
+                liquid = { "prettier" },
                 lua = { "stylua" },
                 python = { "isort", "black" },
             },
@@ -50,7 +50,6 @@ return {
             },
         })
 
-        vim.g.conform_log_level = "debug"
         vim.keymap.set({ "n", "v" }, "<leader>mp", function()
             conform.format({
                 lsp_fallback = true,

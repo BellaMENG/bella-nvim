@@ -2,9 +2,9 @@ return {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
     dependencies = {
-        { "hrsh7th/cmp-nvim-lsp", commit = "39e2eda76828d88b773cc27a3f61d2ad851b4263" }, -- Pin to stable version
+        "hrsh7th/cmp-nvim-lsp",
         { "antosha417/nvim-lsp-file-operations", config = true },
-        { "folke/neodev.nvim", opts = {} },
+        { "folke/lazydev.nvim", opts = {} },
     },
     config = function()
         -- import lspconfig plugin
@@ -17,6 +17,11 @@ return {
         local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
         local keymap = vim.keymap -- for conciseness
+
+        require("lspconfig").eslint.setup({
+            cmd = { "./node_modules/.bin/eslint", "--stdio" },
+            root_dir = require("lspconfig").util.root_pattern(".eslintrc", "package.json", ".git"),
+        })
 
         vim.api.nvim_create_autocmd("LspAttach", {
             group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
@@ -64,8 +69,30 @@ return {
             end,
         })
 
-        -- Get default capabilities and ensure they are properly configured
+        -- Get default capabilities
         local capabilities = cmp_nvim_lsp.default_capabilities()
+
+        lspconfig.sourcekit.setup({
+            cmd = { "sourcekit-lsp", "--scratch-path", ".nativeBuild" },
+            root_dir = function(filename)
+                if string.match(filename, "Crossplatform") or string.match(filename, "CommonSwift") then
+                    return "/Users/bellameng/GoodNotes-5/Crossplatform"
+                else
+                    return lspconfig.util.root_pattern("Package.swift")(filename)
+                end
+            end,
+            on_attach = function(client, bufnr)
+                vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
+            end,
+            capabilities = capabilities,
+        })
+
+        lspconfig.ts_ls.setup({
+            capabilities = capabilities,
+            on_attach = function(client, bufnr)
+                client.server_capabilities.documentFormattingProvider = false
+            end,
+        })
 
         -- Change the Diagnostic symbols in the sign column (gutter)
         local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
@@ -74,34 +101,22 @@ return {
             vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
         end
 
-        -- Setup handlers for Mason-installed servers
         mason_lspconfig.setup_handlers({
             -- default handler for installed servers
             function(server_name)
-                -- Don't setup sourcekit here since we handle it above
-                if server_name == "sourcekit" then
+                if server_name == "sourcekit" or server_name == "ts_ls" then
                     return
                 end
-
                 lspconfig[server_name].setup({
                     capabilities = capabilities,
                 })
             end,
 
-            -- Configure TypeScript server
-            ["ts_ls"] = function()
-                lspconfig.ts_ls.setup({
-                    capabilities = capabilities,
-                })
-            end,
-
-            -- Configure Lua server (with special settings)
             ["lua_ls"] = function()
                 lspconfig.lua_ls.setup({
                     capabilities = capabilities,
                     settings = {
                         Lua = {
-                            -- make the language server recognize "vim" global
                             diagnostics = {
                                 globals = { "vim" },
                             },
