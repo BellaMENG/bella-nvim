@@ -27,7 +27,7 @@ Each plugin file returns a lazy.nvim spec table. Lazy.nvim auto-discovers files 
 - LSP servers configured explicitly: `sourcekit`, `ts_ls`, `eslint`, `lua_ls`, `html`, `cssls`, `tailwindcss`, `svelte`, `graphql`, `emmet_ls`, `prismals`, `pyright`
 - Mason installs: `ts_ls`, `html`, `cssls`, `tailwindcss`, `svelte`, `lua_ls`, `graphql`, `emmet_ls`, `prismals`, `pyright`
 - Formatting uses `conform.nvim`
-- JS/TS and related filetypes prefer repo-owned formatters in this order: `oxfmt`, `biome`, `prettier`
+- JS/TS and related filetypes pick the first formatter with repo config in this order: `oxfmt`, `biome`, `prettier`; without repo config they fall back to `oxfmt`, `biome`, `prettier`
 - Lua formatting uses `stylua`
 - Python formatting uses `isort` and `black`
 - Linting uses `eslint_d` for JS/TS-family files and `pylint` for Python

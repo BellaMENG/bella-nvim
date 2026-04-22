@@ -49,6 +49,11 @@ return {
                 "pylint",
                 "eslint_d",
             },
+            integrations = {
+                ["mason-lspconfig"] = false,
+                ["mason-null-ls"] = false,
+                ["mason-nvim-dap"] = false,
+            },
         })
     end,
 }

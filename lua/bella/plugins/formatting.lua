@@ -22,6 +22,45 @@ return {
             graphql = true,
             liquid = true,
         }
+        local oxfmt_root_markers = { ".oxfmtrc.json", ".oxfmtrc.jsonc" }
+        local biome_root_markers = { "biome.json", "biome.jsonc" }
+        local prettier_root_markers = {
+            ".prettierrc",
+            ".prettierrc.json",
+            ".prettierrc.json5",
+            ".prettierrc.yml",
+            ".prettierrc.yaml",
+            ".prettierrc.js",
+            ".prettierrc.cjs",
+            ".prettierrc.mjs",
+            "prettier.config.js",
+            "prettier.config.cjs",
+            "prettier.config.mjs",
+        }
+
+        local function has_root_marker(bufnr, markers)
+            return vim.fs.find(markers, {
+                upward = true,
+                path = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr)),
+                type = "file",
+            })[1] ~= nil
+        end
+
+        local function repo_aware_formatters(bufnr)
+            if has_root_marker(bufnr, oxfmt_root_markers) then
+                return { "oxfmt", "biome", "prettier", stop_after_first = true }
+            end
+
+            if has_root_marker(bufnr, biome_root_markers) then
+                return { "biome", "prettier", "oxfmt", stop_after_first = true }
+            end
+
+            if has_root_marker(bufnr, prettier_root_markers) then
+                return { "prettier", "biome", "oxfmt", stop_after_first = true }
+            end
+
+            return { "oxfmt", "biome", "prettier", stop_after_first = true }
+        end
 
         local function should_use_lsp_fallback(bufnr)
             local filetype = vim.bo[bufnr].filetype
@@ -29,7 +68,7 @@ return {
                 return "fallback"
             end
 
-            local configured_formatters = conform.formatters_by_ft[filetype] or {}
+            local configured_formatters = conform.list_formatters_for_buffer(bufnr)
             for _, formatter in ipairs(configured_formatters) do
                 if conform.get_formatter_info(formatter, bufnr).available then
                     return "never"
@@ -41,18 +80,18 @@ return {
 
         conform.setup({
             formatters_by_ft = {
-                javascript = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                typescript = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                javascriptreact = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                typescriptreact = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                svelte = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                css = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                html = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                json = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                yaml = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                markdown = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                graphql = { "oxfmt", "biome", "prettier", stop_after_first = true },
-                liquid = { "oxfmt", "biome", "prettier", stop_after_first = true },
+                javascript = repo_aware_formatters,
+                typescript = repo_aware_formatters,
+                javascriptreact = repo_aware_formatters,
+                typescriptreact = repo_aware_formatters,
+                svelte = repo_aware_formatters,
+                css = repo_aware_formatters,
+                html = repo_aware_formatters,
+                json = repo_aware_formatters,
+                yaml = repo_aware_formatters,
+                markdown = repo_aware_formatters,
+                graphql = repo_aware_formatters,
+                liquid = repo_aware_formatters,
                 lua = { "stylua" },
                 python = { "isort", "black" },
             },
